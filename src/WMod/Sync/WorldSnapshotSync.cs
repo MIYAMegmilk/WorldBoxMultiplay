@@ -8,7 +8,7 @@ internal static class WorldSnapshotSync
 {
     public static float AutoIntervalSec; // 0 = off
     private static float _nextAutoAt;
-    private static readonly float[] _intervalCycle = new float[] { 0f, 5f, 10f, 30f };
+    private static readonly float[] _intervalCycle = new float[] { 0f, 1f, 2f, 3f, 5f, 10f, 30f };
 
     public static void CycleAutoInterval()
     {
