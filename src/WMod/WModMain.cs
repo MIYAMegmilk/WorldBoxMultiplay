@@ -33,6 +33,7 @@ public class WModMain : BasicMod<WModMain>
         NetworkManager.DrainInbox();
         ManaSystem.Tick(Time.unscaledDeltaTime);
         MatchRunner.Tick(Time.unscaledTime);
+        WorldSnapshotSync.TickAuto(Time.unscaledTime);
 
         if (Input.GetKeyDown(KeyCode.Keypad1)) DoHost();
         else if (Input.GetKeyDown(KeyCode.Keypad2)) DoJoin();
@@ -43,6 +44,32 @@ public class WModMain : BasicMod<WModMain>
         else if (Input.GetKeyDown(KeyCode.L)) DoRoster();
         else if (Input.GetKeyDown(KeyCode.G)) DoGenerateWorld();
         else if (Input.GetKeyDown(KeyCode.KeypadPeriod)) DoSendSnapshot();
+        else if (Input.GetKeyDown(KeyCode.D)) DoDumpLocal();
+        else if (Input.GetKeyDown(KeyCode.KeypadPlus)) WorldSnapshotSync.CycleAutoInterval();
+    }
+
+    private int _dumpCounter;
+
+    private void DoDumpLocal()
+    {
+        try
+        {
+            if (MapBox.instance == null) { Toast("[D] MapBox not ready"); return; }
+            var bytes = SaveManager.currentWorldToSavedMap().toZip();
+            _dumpCounter++;
+            string role;
+            if ((NetworkManager.Role & NetRole.Host) != 0) role = "A";
+            else if ((NetworkManager.Role & NetRole.Client) != 0) role = "B";
+            else role = "X";
+            var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                $"wmod_dump_{role}_{_dumpCounter:D3}.bin");
+            System.IO.File.WriteAllBytes(path, bytes);
+            Toast($"[D] dump #{_dumpCounter} ({role}) {bytes.Length:N0}B -> {System.IO.Path.GetFileName(path)}");
+        }
+        catch (System.Exception ex)
+        {
+            Toast($"[D] dump error: {ex.Message}");
+        }
     }
 
     private void DoSendSnapshot()
@@ -163,7 +190,7 @@ public class WModMain : BasicMod<WModMain>
         Toast($"[Numpad 3] sent PING #{_pingSeq}");
     }
 
-    private void DoStatus() => Toast($"[Numpad 0] {NetworkManager.StatusLine()}");
+    private void DoStatus() => Toast($"[Numpad 0] {NetworkManager.StatusLine()} | snap: {WorldSnapshotSync.StatusLine()}");
 
     private void DoDisconnect()
     {

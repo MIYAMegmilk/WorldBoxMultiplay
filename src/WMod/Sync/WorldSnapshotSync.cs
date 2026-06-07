@@ -6,6 +6,40 @@ namespace WMod.Sync;
 
 internal static class WorldSnapshotSync
 {
+    public static float AutoIntervalSec; // 0 = off
+    private static float _nextAutoAt;
+    private static readonly float[] _intervalCycle = new float[] { 0f, 5f, 10f, 30f };
+
+    public static void CycleAutoInterval()
+    {
+        int idx = System.Array.IndexOf(_intervalCycle, AutoIntervalSec);
+        if (idx < 0) idx = 0;
+        idx = (idx + 1) % _intervalCycle.Length;
+        AutoIntervalSec = _intervalCycle[idx];
+        _nextAutoAt = AutoIntervalSec > 0
+            ? UnityEngine.Time.unscaledTime + AutoIntervalSec
+            : 0f;
+        WModBridge.Toast(AutoIntervalSec == 0
+            ? "[Numpad +] auto-snapshot OFF"
+            : $"[Numpad +] auto-snapshot every {AutoIntervalSec:0}s");
+    }
+
+    public static void TickAuto(float now)
+    {
+        if (AutoIntervalSec <= 0) return;
+        if ((NetworkManager.Role & NetRole.Host) == 0) return;
+        if (now < _nextAutoAt) return;
+        _nextAutoAt = now + AutoIntervalSec;
+        HostSendSnapshot();
+    }
+
+    public static string StatusLine()
+    {
+        if (AutoIntervalSec <= 0) return "auto OFF";
+        var remain = System.Math.Max(0, _nextAutoAt - UnityEngine.Time.unscaledTime);
+        return $"auto {AutoIntervalSec:0}s (next in {remain:0.0}s)";
+    }
+
     public static void HostSendSnapshot()
     {
         try
