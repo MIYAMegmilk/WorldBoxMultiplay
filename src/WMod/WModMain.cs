@@ -37,6 +37,7 @@ public class WModMain : BasicMod<WModMain>
         WorldSnapshotSync.TickAuto(Time.unscaledTime);
         WorldSnapshotSync.TickHideMaintenance(Time.unscaledTime);
         ClientSimMode.Tick();
+        UnitPositionSync.TickHost(Time.unscaledTime);
 
         if (Input.GetKeyDown(KeyCode.Keypad1)) DoHost();
         else if (Input.GetKeyDown(KeyCode.Keypad2)) DoJoin();
@@ -252,6 +253,9 @@ public class WModMain : BasicMod<WModMain>
                 break;
             case "WORLD_SNAPSHOT":
                 WorldSnapshotSync.HandleRemoteSnapshot(msg.Payload);
+                break;
+            case "UNIT_POS":
+                UnitPositionSync.HandleRemote(msg.Payload);
                 break;
         }
     }
