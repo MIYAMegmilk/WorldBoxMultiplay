@@ -2,6 +2,7 @@ using HarmonyLib;
 using Newtonsoft.Json;
 using UnityEngine;
 using WMod.Net;
+using WMod.Rules;
 
 namespace WMod.Sync;
 
@@ -15,6 +16,22 @@ internal class ClickPayload
 [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.clickedFinal))]
 public static class ClickedFinalPatch
 {
+    [HarmonyPrefix]
+    public static bool Prefix(Vector2Int pPos, GodPower pPower, bool pTrack)
+    {
+        if (RemoteApplyGuard.IsApplyingRemote) return true;
+        if (PlayerRegistry.Self.id < 0) return true; // not in a multiplayer session
+        if (pPower == null) return true;
+
+        if (!ManaSystem.CanUse(PlayerRegistry.Self.id, pPower, out var reason))
+        {
+            WModBridge.Toast($"blocked: {pPower.id} ({reason})");
+            return false;
+        }
+        ManaSystem.Consume(PlayerRegistry.Self.id, pPower);
+        return true;
+    }
+
     [HarmonyPostfix]
     public static void Postfix(Vector2Int pPos, GodPower pPower, bool pTrack)
     {

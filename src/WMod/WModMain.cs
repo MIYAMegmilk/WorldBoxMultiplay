@@ -15,11 +15,13 @@ public class WModMain : BasicMod<WModMain>
     private float _toastUntil;
     private GUIStyle _boxStyle;
     private GUIStyle _labelStyle;
+    private GUIStyle _manaFillStyle;
 
     protected override void OnModLoad()
     {
         LogInfo("WMod loaded — multiplayer mod scaffold v0.0.1");
         NetworkManager.OnMessage += HandleNetMessage;
+        WModBridge.OnToast = Toast;
 
         var harmony = new Harmony("io.github.miyamegmilk.wmod");
         harmony.PatchAll();
@@ -29,6 +31,7 @@ public class WModMain : BasicMod<WModMain>
     private void Update()
     {
         NetworkManager.DrainInbox();
+        ManaSystem.Tick(Time.unscaledDeltaTime);
 
         if (Input.GetKeyDown(KeyCode.Keypad1)) DoHost();
         else if (Input.GetKeyDown(KeyCode.Keypad2)) DoJoin();
@@ -41,20 +44,40 @@ public class WModMain : BasicMod<WModMain>
 
     private void OnGUI()
     {
-        if (string.IsNullOrEmpty(_toast) || Time.unscaledTime > _toastUntil) return;
         EnsureStyles();
+        DrawToast();
+        if (PlayerRegistry.Self.id >= 0) DrawManaBar();
+    }
+
+    private void DrawToast()
+    {
+        if (string.IsNullOrEmpty(_toast) || Time.unscaledTime > _toastUntil) return;
         var rect = new Rect(20, 20, 720, 36);
         GUI.Box(rect, GUIContent.none, _boxStyle);
         GUI.Label(rect, _toast, _labelStyle);
     }
 
+    private void DrawManaBar()
+    {
+        var p = ManaSystem.Get(PlayerRegistry.Self.id);
+        if (p == null) return;
+        const int w = 260, h = 24;
+        var rect = new Rect(20, Screen.height - 44, w, h);
+        GUI.Box(rect, GUIContent.none, _boxStyle);
+        var fillW = (int)((w - 4) * Mathf.Clamp01(p.current / p.max));
+        if (fillW > 0)
+        {
+            var fillRect = new Rect(rect.x + 2, rect.y + 2, fillW, h - 4);
+            GUI.Box(fillRect, GUIContent.none, _manaFillStyle);
+        }
+        GUI.Label(rect, $"  Mana {p.current:0}/{p.max:0}", _labelStyle);
+    }
+
     private void EnsureStyles()
     {
         if (_boxStyle != null) return;
-        var bg = new Texture2D(1, 1);
-        bg.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.78f));
-        bg.Apply();
-        _boxStyle = new GUIStyle { normal = { background = bg } };
+        _boxStyle = new GUIStyle { normal = { background = MakeTex(new Color(0f, 0f, 0f, 0.78f)) } };
+        _manaFillStyle = new GUIStyle { normal = { background = MakeTex(new Color(0.25f, 0.55f, 1.0f, 0.85f)) } };
         _labelStyle = new GUIStyle(GUI.skin.label)
         {
             fontSize = 18,
@@ -62,6 +85,14 @@ public class WModMain : BasicMod<WModMain>
             padding = new RectOffset(12, 12, 4, 4),
         };
         _labelStyle.normal.textColor = Color.white;
+    }
+
+    private static Texture2D MakeTex(Color c)
+    {
+        var t = new Texture2D(1, 1);
+        t.SetPixel(0, 0, c);
+        t.Apply();
+        return t;
     }
 
     private void Toast(string text)
@@ -115,6 +146,7 @@ public class WModMain : BasicMod<WModMain>
     {
         NetworkManager.Shutdown();
         PlayerRegistry.Reset();
+        ManaSystem.Reset();
         Toast("[Numpad -] disconnected");
     }
 
