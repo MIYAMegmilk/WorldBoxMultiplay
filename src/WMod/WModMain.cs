@@ -30,6 +30,7 @@ public class WModMain : BasicMod<WModMain>
 
     private void Update()
     {
+        FixedTick.TickIfEnabled();
         NetworkManager.DrainInbox();
         ManaSystem.Tick(Time.unscaledDeltaTime);
         MatchRunner.Tick(Time.unscaledTime);
@@ -161,7 +162,8 @@ public class WModMain : BasicMod<WModMain>
         {
             NetworkManager.StartHost();
             PlayerRegistry.SetSelf(0, "Host");
-            Toast($"[Numpad 1] Host started on :{NetworkManager.DefaultPort} (you=id 0)");
+            EnableLockstep();
+            Toast($"[Numpad 1] Host on :{NetworkManager.DefaultPort} + lockstep mode (id 0)");
         }
         catch (Exception ex) { Toast($"[Numpad 1] Host failed: {ex.Message}"); }
     }
@@ -172,9 +174,22 @@ public class WModMain : BasicMod<WModMain>
         {
             NetworkManager.ConnectClient("127.0.0.1");
             PlayerRegistry.SetSelf(1, "Client");
-            Toast($"[Numpad 2] Connected as client -> 127.0.0.1:{NetworkManager.DefaultPort} (you=id 1)");
+            EnableLockstep();
+            Toast($"[Numpad 2] Connected -> 127.0.0.1:{NetworkManager.DefaultPort} + lockstep mode (id 1)");
         }
         catch (Exception ex) { Toast($"[Numpad 2] Connect failed: {ex.Message}"); }
+    }
+
+    private static void EnableLockstep()
+    {
+        if (!ParallelLockstep.ForceSequential) ParallelLockstep.Toggle();
+        if (!FixedTick.Enabled) FixedTick.Toggle();
+    }
+
+    private static void DisableLockstep()
+    {
+        if (ParallelLockstep.ForceSequential) ParallelLockstep.Toggle();
+        if (FixedTick.Enabled) FixedTick.Toggle();
     }
 
     private void DoClaim()
@@ -201,7 +216,8 @@ public class WModMain : BasicMod<WModMain>
         PlayerRegistry.Reset();
         ManaSystem.Reset();
         MatchRunner.Reset();
-        Toast("[Numpad -] disconnected");
+        DisableLockstep();
+        Toast("[Numpad -] disconnected + lockstep OFF");
     }
 
     private void HandleNetMessage(NetMessage msg)
