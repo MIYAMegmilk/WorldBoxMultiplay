@@ -34,6 +34,7 @@ public class WModMain : BasicMod<WModMain>
         ManaSystem.Tick(Time.unscaledDeltaTime);
         MatchRunner.Tick(Time.unscaledTime);
         WorldSnapshotSync.TickAuto(Time.unscaledTime);
+        WorldSnapshotSync.TickHideMaintenance(Time.unscaledTime);
 
         if (Input.GetKeyDown(KeyCode.Keypad1)) DoHost();
         else if (Input.GetKeyDown(KeyCode.Keypad2)) DoJoin();

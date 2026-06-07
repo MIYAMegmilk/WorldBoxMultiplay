@@ -67,14 +67,52 @@ internal static class WorldSnapshotSync
         try
         {
             var bytes = Convert.FromBase64String(payload);
-            WModBridge.Toast($"[snapshot<-] loading {bytes.Length:N0} bytes");
             Debug.Log($"[WMod] applying remote snapshot: {bytes.Length} bytes");
+            HideLoadingUI();
             SaveManager.loadMapFromBytes(bytes);
+            // Re-hide on next ticks too — load is async via SmoothLoader.
+            _hideUntil = UnityEngine.Time.unscaledTime + 3f;
         }
         catch (Exception ex)
         {
             WModBridge.Toast($"snapshot load error: {ex.Message}");
             Debug.Log($"[WMod] HandleRemoteSnapshot error: {ex}");
         }
+    }
+
+    private static float _hideUntil;
+
+    private static void HideLoadingUI()
+    {
+        var map = MapBox.instance;
+        if (map == null) return;
+        var ls = map.transition_screen;
+        if (ls == null) return;
+        if (ls.canvasGroup != null) { ls.canvasGroup.alpha = 0f; ls.canvasGroup.blocksRaycasts = false; }
+        if (ls.canvas != null) ls.canvas.enabled = false;
+    }
+
+    private static void RestoreLoadingUI()
+    {
+        var map = MapBox.instance;
+        if (map == null) return;
+        var ls = map.transition_screen;
+        if (ls == null) return;
+        if (ls.canvasGroup != null) { ls.canvasGroup.alpha = 1f; ls.canvasGroup.blocksRaycasts = true; }
+        if (ls.canvas != null) ls.canvas.enabled = true;
+    }
+
+    public static void TickHideMaintenance(float now)
+    {
+        // While a snapshot is being applied (multi-frame via SmoothLoader),
+        // keep re-asserting the hide because the game may toggle the canvas back.
+        if (_hideUntil <= 0) return;
+        if (now > _hideUntil)
+        {
+            _hideUntil = 0f;
+            RestoreLoadingUI();
+            return;
+        }
+        HideLoadingUI();
     }
 }
