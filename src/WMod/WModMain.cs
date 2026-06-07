@@ -32,6 +32,7 @@ public class WModMain : BasicMod<WModMain>
     {
         NetworkManager.DrainInbox();
         ManaSystem.Tick(Time.unscaledDeltaTime);
+        MatchRunner.Tick(Time.unscaledTime);
 
         if (Input.GetKeyDown(KeyCode.Keypad1)) DoHost();
         else if (Input.GetKeyDown(KeyCode.Keypad2)) DoJoin();
@@ -147,6 +148,7 @@ public class WModMain : BasicMod<WModMain>
         NetworkManager.Shutdown();
         PlayerRegistry.Reset();
         ManaSystem.Reset();
+        MatchRunner.Reset();
         Toast("[Numpad -] disconnected");
     }
 
@@ -171,6 +173,9 @@ public class WModMain : BasicMod<WModMain>
             case "CLAIM":
                 KingdomClaimHandler.HandleRemoteClaim(msg.fromPlayerId, msg.Payload);
                 Toast($"peer id={msg.fromPlayerId} claimed kingdom");
+                break;
+            case "MATCH_RESULT":
+                MatchRunner.HandleRemote(msg.Payload);
                 break;
         }
     }
