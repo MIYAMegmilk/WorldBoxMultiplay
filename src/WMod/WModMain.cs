@@ -3,6 +3,7 @@ using HarmonyLib;
 using NeoModLoader.api;
 using UnityEngine;
 using WMod.Net;
+using WMod.Rules;
 using WMod.Sync;
 
 namespace WMod;
@@ -34,6 +35,8 @@ public class WModMain : BasicMod<WModMain>
         else if (Input.GetKeyDown(KeyCode.Keypad3)) DoSendTest();
         else if (Input.GetKeyDown(KeyCode.Keypad0)) DoStatus();
         else if (Input.GetKeyDown(KeyCode.KeypadMinus)) DoDisconnect();
+        else if (Input.GetKeyDown(KeyCode.K)) DoClaim();
+        else if (Input.GetKeyDown(KeyCode.L)) DoRoster();
     }
 
     private void OnGUI()
@@ -73,7 +76,8 @@ public class WModMain : BasicMod<WModMain>
         try
         {
             NetworkManager.StartHost();
-            Toast($"[Numpad 1] Host started on :{NetworkManager.DefaultPort}");
+            PlayerRegistry.SetSelf(0, "Host");
+            Toast($"[Numpad 1] Host started on :{NetworkManager.DefaultPort} (you=id 0)");
         }
         catch (Exception ex) { Toast($"[Numpad 1] Host failed: {ex.Message}"); }
     }
@@ -83,10 +87,19 @@ public class WModMain : BasicMod<WModMain>
         try
         {
             NetworkManager.ConnectClient("127.0.0.1");
-            Toast($"[Numpad 2] Connected as client -> 127.0.0.1:{NetworkManager.DefaultPort}");
+            PlayerRegistry.SetSelf(1, "Client");
+            Toast($"[Numpad 2] Connected as client -> 127.0.0.1:{NetworkManager.DefaultPort} (you=id 1)");
         }
         catch (Exception ex) { Toast($"[Numpad 2] Connect failed: {ex.Message}"); }
     }
+
+    private void DoClaim()
+    {
+        var result = KingdomClaimHandler.TryClaimAtCursor();
+        Toast($"[K] {result}");
+    }
+
+    private void DoRoster() => Toast($"[L] roster: {PlayerRegistry.RosterText()}");
 
     private void DoSendTest()
     {
@@ -101,6 +114,7 @@ public class WModMain : BasicMod<WModMain>
     private void DoDisconnect()
     {
         NetworkManager.Shutdown();
+        PlayerRegistry.Reset();
         Toast("[Numpad -] disconnected");
     }
 
@@ -121,6 +135,10 @@ public class WModMain : BasicMod<WModMain>
                 break;
             case "CLICK":
                 GodPowerSync.HandleRemoteClick(msg.Payload);
+                break;
+            case "CLAIM":
+                KingdomClaimHandler.HandleRemoteClaim(msg.fromPlayerId, msg.Payload);
+                Toast($"peer id={msg.fromPlayerId} claimed kingdom");
                 break;
         }
     }
