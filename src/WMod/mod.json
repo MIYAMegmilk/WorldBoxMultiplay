@@ -1,0 +1,10 @@
+{
+    "name": "WMod",
+    "author": "shiba",
+    "version": "0.0.1",
+    "description": "WorldBox multiplayer mod (work in progress).",
+    "iconPath": "icon.png",
+    "Dependencies": [],
+    "OptionalDependencies": [],
+    "IncompatibleWith": []
+}
