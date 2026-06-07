@@ -48,6 +48,7 @@ public class WModMain : BasicMod<WModMain>
         else if (Input.GetKeyDown(KeyCode.D)) DoDumpLocal();
         else if (Input.GetKeyDown(KeyCode.KeypadPlus)) WorldSnapshotSync.CycleAutoInterval();
         else if (Input.GetKeyDown(KeyCode.KeypadMultiply)) ParallelLockstep.Toggle();
+        else if (Input.GetKeyDown(KeyCode.KeypadDivide)) FixedTick.Toggle();
     }
 
     private int _dumpCounter;
