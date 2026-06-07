@@ -3,3 +3,13 @@ obj/
 *.user
 *.suo
 .vs/
+
+# Claude Code — must never be committed (per project policy)
+.claude/
+.claude.*
+CLAUDE.md
+CLAUDE.local.md
+claude.md
+.claudeignore
+*.claude
+*.claude.*
