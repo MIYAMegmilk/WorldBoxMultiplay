@@ -36,6 +36,7 @@ public class WModMain : BasicMod<WModMain>
         MatchRunner.Tick(Time.unscaledTime);
         WorldSnapshotSync.TickAuto(Time.unscaledTime);
         WorldSnapshotSync.TickHideMaintenance(Time.unscaledTime);
+        ClientSimMode.Tick();
 
         if (Input.GetKeyDown(KeyCode.Keypad1)) DoHost();
         else if (Input.GetKeyDown(KeyCode.Keypad2)) DoJoin();
@@ -174,8 +175,8 @@ public class WModMain : BasicMod<WModMain>
         {
             NetworkManager.ConnectClient("127.0.0.1");
             PlayerRegistry.SetSelf(1, "Client");
-            EnableLockstep();
-            Toast($"[Numpad 2] Connected -> 127.0.0.1:{NetworkManager.DefaultPort} + lockstep mode (id 1)");
+            ClientSimMode.Enable();
+            Toast($"[Numpad 2] Connected -> 127.0.0.1:{NetworkManager.DefaultPort} + sim PAUSED (id 1)");
         }
         catch (Exception ex) { Toast($"[Numpad 2] Connect failed: {ex.Message}"); }
     }
@@ -217,7 +218,8 @@ public class WModMain : BasicMod<WModMain>
         ManaSystem.Reset();
         MatchRunner.Reset();
         DisableLockstep();
-        Toast("[Numpad -] disconnected + lockstep OFF");
+        ClientSimMode.Disable();
+        Toast("[Numpad -] disconnected + sim restored");
     }
 
     private void HandleNetMessage(NetMessage msg)

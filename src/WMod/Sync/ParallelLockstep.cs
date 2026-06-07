@@ -49,11 +49,21 @@ public static class ParallelCallSiteRewrite
     public static IEnumerable<MethodBase> TargetMethods()
     {
         var results = new List<MethodBase>();
+        // Per-frame sim hotspots (most important)
         TryAdd(results, "MapBox", "checkDirtyUnits");
+        // Chunk topology
         TryAdd(results, "MapChunkManager", "calc_tileEdges");
         TryAdd(results, "MapChunkManager", "calc_regions");
+        TryAdd(results, "MapChunkManager", "calc_linkedRegions");
+        TryAdd(results, "MapChunkManager", "calc_links");
+        TryAdd(results, "MapChunkManager", "calc_neighbourIslands");
+        // Rendering precalc (still ordering-sensitive if it reads simulation state)
         TryAdd(results, "ActorManager", "precalculateRenderDataParallel");
         TryAdd(results, "BuildingManager", "precalculateRenderDataParallel");
+        // AI job processing — patch via concrete subclasses to avoid the open-
+        // generic Transpiler crash we hit earlier.
+        TryAddInherited(results, "JobManagerActors", "updateBaseJobsParallel");
+        TryAddInherited(results, "JobManagerBuildings", "updateBaseJobsParallel");
         return results;
     }
 
@@ -65,6 +75,20 @@ public static class ParallelCallSiteRewrite
         var m = AccessTools.Method(t, methodName);
         if (m == null) { Debug.Log($"[WMod] ParallelCallSiteRewrite: {typeName}.{methodName} not found"); return; }
         list.Add(m);
+    }
+
+    private static void TryAddInherited(List<MethodBase> list, string typeName, string methodName)
+    {
+        // For methods inherited from a generic base, resolve the closed-generic
+        // method via the concrete subclass — avoids the open-generic Transpiler
+        // crash we hit when targeting JobManagerBase`2 directly.
+        var t = AccessTools.TypeByName(typeName);
+        if (t == null) { Debug.Log($"[WMod] ParallelCallSiteRewrite: type {typeName} not found"); return; }
+        var m = t.GetMethod(methodName,
+            BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+        if (m == null) { Debug.Log($"[WMod] ParallelCallSiteRewrite: {typeName}.{methodName} not found"); return; }
+        list.Add(m);
+        Debug.Log($"[WMod] ParallelCallSiteRewrite: targeting {typeName}.{methodName} (declared on {m.DeclaringType.Name})");
     }
 
     public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
