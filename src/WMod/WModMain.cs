@@ -41,6 +41,17 @@ public class WModMain : BasicMod<WModMain>
         else if (Input.GetKeyDown(KeyCode.KeypadMinus)) DoDisconnect();
         else if (Input.GetKeyDown(KeyCode.K)) DoClaim();
         else if (Input.GetKeyDown(KeyCode.L)) DoRoster();
+        else if (Input.GetKeyDown(KeyCode.G)) DoGenerateWorld();
+    }
+
+    private void DoGenerateWorld()
+    {
+        if ((NetworkManager.Role & NetRole.Host) == 0)
+        {
+            Toast("[G] only host can trigger synced world gen");
+            return;
+        }
+        WorldGenSync.HostStartNewWorld();
     }
 
     private void OnGUI()
@@ -176,6 +187,9 @@ public class WModMain : BasicMod<WModMain>
                 break;
             case "MATCH_RESULT":
                 MatchRunner.HandleRemote(msg.Payload);
+                break;
+            case "WORLD_GEN":
+                WorldGenSync.HandleRemoteGen(msg.Payload);
                 break;
         }
     }
