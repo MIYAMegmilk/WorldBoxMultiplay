@@ -1,6 +1,8 @@
+using HarmonyLib;
 using NeoModLoader.api;
 using UnityEngine;
 using WMod.Net;
+using WMod.Sync;
 
 namespace WMod;
 
@@ -12,6 +14,10 @@ public class WModMain : BasicMod<WModMain>
     {
         LogInfo("WMod loaded — multiplayer mod scaffold v0.0.1");
         NetworkManager.OnMessage += HandleNetMessage;
+
+        var harmony = new Harmony("io.github.miyamegmilk.wmod");
+        harmony.PatchAll();
+        LogInfo("[WMod] Harmony patches applied");
     }
 
     private void Update()
@@ -65,9 +71,14 @@ public class WModMain : BasicMod<WModMain>
     {
         LogInfo($"[NET<-] {msg.Type} payload={msg.Payload} ts={msg.Timestamp}");
 
-        if (msg.Type == "PING")
+        switch (msg.Type)
         {
-            NetworkManager.Send(NetMessage.Create("PONG", msg.Payload));
+            case "PING":
+                NetworkManager.Send(NetMessage.Create("PONG", msg.Payload));
+                break;
+            case "CLICK":
+                GodPowerSync.HandleRemoteClick(msg.Payload);
+                break;
         }
     }
 }
