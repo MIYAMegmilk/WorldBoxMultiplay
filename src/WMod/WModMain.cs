@@ -42,6 +42,17 @@ public class WModMain : BasicMod<WModMain>
         else if (Input.GetKeyDown(KeyCode.K)) DoClaim();
         else if (Input.GetKeyDown(KeyCode.L)) DoRoster();
         else if (Input.GetKeyDown(KeyCode.G)) DoGenerateWorld();
+        else if (Input.GetKeyDown(KeyCode.KeypadPeriod)) DoSendSnapshot();
+    }
+
+    private void DoSendSnapshot()
+    {
+        if ((NetworkManager.Role & NetRole.Host) == 0)
+        {
+            Toast("[Numpad .] only host can send snapshot");
+            return;
+        }
+        WorldSnapshotSync.HostSendSnapshot();
     }
 
     private void DoGenerateWorld()
@@ -190,6 +201,9 @@ public class WModMain : BasicMod<WModMain>
                 break;
             case "WORLD_GEN":
                 WorldGenSync.HandleRemoteGen(msg.Payload);
+                break;
+            case "WORLD_SNAPSHOT":
+                WorldSnapshotSync.HandleRemoteSnapshot(msg.Payload);
                 break;
         }
     }

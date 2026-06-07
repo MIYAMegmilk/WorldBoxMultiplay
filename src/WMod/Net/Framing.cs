@@ -7,7 +7,7 @@ namespace WMod.Net;
 
 internal static class Framing
 {
-    private const int MaxFrameBytes = 4 * 1024 * 1024;
+    private const int MaxFrameBytes = 64 * 1024 * 1024; // 64 MiB — accommodates compressed save snapshots
 
     public static void WriteFrame(Stream stream, NetMessage msg)
     {
