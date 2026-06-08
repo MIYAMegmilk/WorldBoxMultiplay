@@ -26,6 +26,8 @@ public class WModMain : BasicMod<WModMain>
         var harmony = new Harmony("io.github.miyamegmilk.wmod");
         harmony.PatchAll();
         LogInfo("[WMod] Harmony patches applied");
+
+        AutoTest.Init();
     }
 
     private void Update()
@@ -38,6 +40,7 @@ public class WModMain : BasicMod<WModMain>
         WorldSnapshotSync.TickHideMaintenance(Time.unscaledTime);
         ClientSimMode.Tick();
         UnitPositionSync.TickHost(Time.unscaledTime);
+        AutoTest.Tick(Time.unscaledTime);
 
         if (Input.GetKeyDown(KeyCode.Keypad1)) DoHost();
         else if (Input.GetKeyDown(KeyCode.Keypad2)) DoJoin();
