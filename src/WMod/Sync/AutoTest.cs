@@ -23,6 +23,7 @@ internal static class AutoTest
     public static string HostAddr = "127.0.0.1";
     public static string DumpDir;
     public static float DumpInterval = 2f;
+    public static string InitialSave;
     private static float _nextDumpAt;
     private static float _waitStartedAt;
     private static int _dumpCounter;
@@ -41,6 +42,7 @@ internal static class AutoTest
 
         HostAddr = Environment.GetEnvironmentVariable("WMOD_HOSTADDR") ?? "127.0.0.1";
         DumpDir = Environment.GetEnvironmentVariable("WMOD_DUMP_DIR") ?? Path.Combine(Path.GetTempPath(), "wmod_autotest");
+        InitialSave = Environment.GetEnvironmentVariable("WMOD_INITIAL_SAVE");
         var iv = Environment.GetEnvironmentVariable("WMOD_DUMP_INTERVAL");
         if (!string.IsNullOrEmpty(iv)) float.TryParse(iv, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out DumpInterval);
 
@@ -60,9 +62,22 @@ internal static class AutoTest
             case State.WaitingForMapBox:
                 if (MapBox.instance != null)
                 {
-                    Debug.Log("[WMod][AutoTest] MapBox.instance ready -> triggering clickGenerateNewMap");
-                    try { MapBox.instance.clickGenerateNewMap(); }
-                    catch (Exception ex) { Debug.Log($"[WMod][AutoTest] clickGenerateNewMap error: {ex.Message}"); }
+                    if (!string.IsNullOrEmpty(InitialSave) && File.Exists(InitialSave))
+                    {
+                        Debug.Log($"[WMod][AutoTest] loading initial save from {InitialSave}");
+                        try
+                        {
+                            var bytes = File.ReadAllBytes(InitialSave);
+                            SaveManager.loadMapFromBytes(bytes);
+                        }
+                        catch (Exception ex) { Debug.Log($"[WMod][AutoTest] save load error: {ex.Message}"); }
+                    }
+                    else
+                    {
+                        Debug.Log("[WMod][AutoTest] no WMOD_INITIAL_SAVE -> triggering clickGenerateNewMap");
+                        try { MapBox.instance.clickGenerateNewMap(); }
+                        catch (Exception ex) { Debug.Log($"[WMod][AutoTest] clickGenerateNewMap error: {ex.Message}"); }
+                    }
                     CurrentState = State.WaitingForWorld;
                     _waitStartedAt = now;
                 }
@@ -73,8 +88,9 @@ internal static class AutoTest
                 // Wait until kingdom manager and units list are valid — a fair proxy for "world is up"
                 if (MapBox.instance != null && MapBox.instance.units != null && MapBox.instance.units.units_only_alive != null)
                 {
-                    if (now - _waitStartedAt < 3f) return; // grace period for the loader to settle
-                    Debug.Log($"[WMod][AutoTest] world appears loaded after {now - _waitStartedAt:F1}s -> ReadyToConnect");
+                    if (now - _waitStartedAt < 5f) return; // grace period for the loader to settle
+                    var ac = MapBox.instance.units.units_only_alive.Count;
+                    Debug.Log($"[WMod][AutoTest] world loaded after {now - _waitStartedAt:F1}s, units_alive={ac} -> ReadyToConnect");
                     CurrentState = State.ReadyToConnect;
                 }
                 else if (now - _waitStartedAt > 120f) Fail("world never finished loading");
@@ -135,6 +151,41 @@ internal static class AutoTest
     {
         Debug.Log($"[WMod][AutoTest] FAIL: {reason}");
         CurrentState = State.Off;
+    }
+
+    // Drop a small cluster of humans on the host so the autotest has units to
+    // measure. The actual content doesn't matter — we just need things that
+    // move so position sync has something to track.
+    private static void SeedTestUnits()
+    {
+        var map = MapBox.instance;
+        if (map == null || map.units == null) return;
+        // ActorManager.spawnNewUnit bypasses GodPower (no player kingdom needed).
+        // Use a fixed center near the map's middle so spawn coords are stable
+        // across runs.
+        int cx = 128, cy = 128;
+        int spawned = 0;
+        for (int dy = -4; dy <= 4; dy += 2)
+        for (int dx = -4; dx <= 4; dx += 2)
+        {
+            var t = map.GetTile(cx + dx, cy + dy);
+            if (t == null) continue;
+            try
+            {
+                var actor = map.units.spawnNewUnit(
+                    pActorAssetID: "human",
+                    pTile: t,
+                    pSpawnSound: false,
+                    pMiracleSpawn: false,
+                    pSpawnHeight: 0f,
+                    pSubspecies: null,
+                    pGiveOwnerlessItems: false,
+                    pAdultAge: true);
+                if (actor != null) spawned++;
+            }
+            catch (System.Exception ex) { Debug.Log($"[WMod][AutoTest] spawn err at ({cx + dx},{cy + dy}): {ex.Message}"); }
+        }
+        Debug.Log($"[WMod][AutoTest] seeded {spawned} humans around ({cx},{cy})");
     }
 
     private static void WriteDump()

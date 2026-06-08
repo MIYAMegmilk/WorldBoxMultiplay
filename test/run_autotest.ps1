@@ -13,6 +13,7 @@ $Exe        = "C:\Program Files (x86)\Steam\steamapps\common\worldbox\worldbox.e
 $DumpDir    = Join-Path $env:TEMP "wmod_autotest"
 $LogA       = Join-Path $env:TEMP "wmod_inst_A.log"
 $LogB       = Join-Path $env:TEMP "wmod_inst_B.log"
+$InitialSave = "$env:USERPROFILE\AppData\LocalLow\mkarpenko\WorldBox\saves\save12\map.wbox"
 
 function Stop-WorldBox {
     Get-Process -Name "worldbox*" -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -28,6 +29,7 @@ function Launch-Instance([string]$role, [string]$logPath) {
     $psi.EnvironmentVariables["WMOD_ROLE"] = $role
     $psi.EnvironmentVariables["WMOD_DUMP_DIR"] = $DumpDir
     $psi.EnvironmentVariables["WMOD_DUMP_INTERVAL"] = $DumpIntervalSec.ToString([System.Globalization.CultureInfo]::InvariantCulture)
+    if (Test-Path $InitialSave) { $psi.EnvironmentVariables["WMOD_INITIAL_SAVE"] = $InitialSave }
     $p = [System.Diagnostics.Process]::Start($psi)
     return $p
 }
