@@ -266,6 +266,9 @@ public class WModMain : BasicMod<WModMain>
             case "UNIT_DEATH":
                 UnitLifecycleSync.HandleRemoteDeath(msg.Payload);
                 break;
+            case "TILE_CHANGE":
+                TileChangeSync.HandleRemote(msg.Payload);
+                break;
         }
     }
 }
