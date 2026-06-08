@@ -260,6 +260,12 @@ public class WModMain : BasicMod<WModMain>
             case "UNIT_POS":
                 UnitPositionSync.HandleRemote(msg.Payload);
                 break;
+            case "UNIT_SPAWN":
+                UnitLifecycleSync.HandleRemoteSpawn(msg.Payload);
+                break;
+            case "UNIT_DEATH":
+                UnitLifecycleSync.HandleRemoteDeath(msg.Payload);
+                break;
         }
     }
 }
